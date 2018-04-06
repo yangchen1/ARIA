@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /* global mainPage, deviceList, refreshButton */
-/* global detailPage, resultDiv, messageInput, sendButton, disconnectButton */
+/* global detailPage, resultDiv, messageInput, sendButton, disconnectButton, graphButton, graphRefreshButton */
 /* global graphPage */
 /* global ble  */
 /* jshint browser: true , devel: true*/
@@ -44,13 +44,14 @@ var app = {
   
     initialize: function() {
         this.bindEvents();
-        detailPage.hidden = true;
+        detailPage.hidden = false;
     },
     bindEvents: function() {
         document.addEventListener('deviceready', this.onDeviceReady, false);
         refreshButton.addEventListener('touchstart', this.refreshDeviceList, false);
         sendButton.addEventListener('click', this.sendData, false);
         graphButton.addEventListener('click', this.showGraphPage, false);
+        graphRefreshButton.addEventListener('click', this.refreshGraph, false);
         disconnectButton.addEventListener('touchstart', this.disconnect, false);
         deviceList.addEventListener('touchstart', this.connect, false); // assume not scrolling
     },
@@ -108,13 +109,13 @@ var app = {
     },
     onData: function(data) { // data received from Arduino
         var data_array = bytesToString(data).split(',');
-        
+        var date = new Date();
         var json = JSON.stringify(
           {
             data_value: data_array[0],
             data_type: data_array[1],
             baby_name: data_array[2],
-            data_date: new Date()
+            data_date: String(date.getFullYear())+"-"+("0"+String(date.getMonth()+1)).slice(-2)+"-"+String(date.getDate())
           });
         
         //resultDiv.innerHTML = resultDiv.innerHTML + "Received: " + json_data + "<br/>";
@@ -122,19 +123,23 @@ var app = {
         
         // construct an HTTP request
         var request = new XMLHttpRequest();
-        request.open("POST", "http://192.168.0.31:8080/ariadata");
+        request.open("POST", "http://192.168.43.234:8080/ariadata");
         request.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
       
         //resultDiv.innerHTML = resultDiv.innerHTML + "Request Error: " + e.message + "<br/>";
-      
-        // send the collected data as JSON
-        request.send(json);
       
         request.onloadend = function () {
           resultDiv.innerHTML = resultDiv.innerHTML + "Data sent to server: " + json + "<br/>";
         };
       
+        // send the collected data as JSON
+        request.send(json);
+      
         resultDiv.scrollTop = resultDiv.scrollHeight;
+    },
+    refreshGraph: function() {
+      console.log("TEST");
+      updateGraph();
     },
     sendData: function(event) { // send data to Arduino
 
@@ -179,12 +184,13 @@ var app = {
     showDetailPage: function() {
         mainPage.hidden = true;
         detailPage.hidden = false;
-        graphPage.hidden = true;
+        graphPage.hidden = false;
     },
     showGraphPage: function() {
         mainPage.hidden = true;
         detailPage.hidden = false;
         graphPage.hidden = false;
+        updateGraph();
     },
     onError: function(reason) {
         alert("ERROR: " + JSON.stringify(reason)); // real apps should use notification.alert
